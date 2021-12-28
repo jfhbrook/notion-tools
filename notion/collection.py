@@ -151,6 +151,27 @@ class Collection(Record):
         python_to_api=markdown_to_notion,
     )
     cover = field_map("cover")
+    _schema_types = [
+        "text",
+        "number",
+        "select",
+        "multi_select",
+        "date",
+        "person",
+        "file",
+        "checkbox",
+        "url",
+        "email",
+        "phone_number",
+        "created_time",
+        "created_by",
+        "last_edited_time",
+        "last_edited_by",
+        "formula",
+        "rollup",
+        # "relation"  # another contract for this type, requires another db at creation time
+    ]
+
 
     @property
     def templates(self):
@@ -160,6 +181,28 @@ class Collection(Record):
             self._templates = Templates(parent=self)
         return self._templates
 
+    def update_schema_properties(self, props):
+        """
+        Update current schema with props.
+        """
+        schema = self.get("schema")
+        # check that props has a valid type
+        for _id, prop in props.items():
+            if prop["type"] not in self._schema_types:
+                logger.error("The type {} is unsupported.".format(prop["type"]))
+                return
+
+        logger.debug("Update current schema: {} with {}".format(schema, props))
+        schema.update(props)
+        self._client.submit_transaction(
+            build_operation(
+                id=self.id,
+                path=[],
+                args=dict(schema=schema),
+                command="update",
+                table="collection",
+            )
+        )
 
     def get_schema_properties(self):
         """
