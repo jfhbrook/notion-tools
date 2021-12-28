@@ -60,19 +60,19 @@ Options:
   --help  Show this message and exit.
 
 Commands:
-  config       Show or set the current configuration
+  settings       Show or set the current settings
   smoke-tests  Run the smoke tests against a Notion URL
 ```
 
 You can also import the client directly in Python:
 
 ```Python
-from notion.config import Config
+from notion.settings import Settings
 from notion.client import NotionClient
 
-config = Config.from_file()
+settings = Settings.from_file()
 
-client = NotionClient(token_v2=config.token)
+client = NotionClient(token_v2=settings.token)
 
 page = client.get_block("https://www.notion.so/myorg/Test-c0d20a71c0944985ae96e661ccc99821")
 
@@ -81,10 +81,10 @@ print(f"Page title: {page.title}")
 page.title = "The title has now changed, and has *live-updated* in the browser!"
 ```
 
-## Configuration
+## Settings
 
-The application code stores its configuration in `~/.local/notion/config.toml`.
-To create a fresh config, run `notion config init`.
+The application code stores its settings in `~/.local/config/notion/settings.toml`.
+To create fresh settings, run `notion settings init`.
 
 It will prompt you for two configuration parameters:
 

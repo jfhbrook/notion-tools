@@ -31,41 +31,41 @@ def cli(ctx):
     ctx.ensure_object(Context)
 
 
-@cli.group(help="Show or set the current configuration")
-def config():
+@cli.group(help="Show or set the current settings")
+def settings():
     pass
 
 
-@config.command(help="Initialize the configuration")
+@settings.command(help="Initialize settings")
 @click.pass_context
 def init(ctx):
     token = click.prompt(
         "Notion API token (from the browser cookie)",
-        default=ctx.obj.config.token or "<unset>",
+        default=ctx.obj.settings.token or "<unset>",
     )
     page = click.prompt(
         "Notion page (from the browser location bar)",
-        default=ctx.obj.config.page or "https://notion.so/<page>",
+        default=ctx.obj.settings.page or "https://notion.so/<page>",
     )
 
-    ctx.obj.set_config(token=token, page=page)
+    ctx.obj.set_settings(token=token, page=page)
 
-    click.echo(f"Configuration written to {config.config_file}")
+    click.echo(f"Settings written to {settings.settings_file}")
 
 
-@config.command(help="Show the current configuration")
+@settings.command(help="Show the current settings")
 @click.pass_context
 def show(ctx):
-    pprint_md(ctx.obj.config)
+    pprint_md(ctx.obj.settings)
 
 
-@config.command(help="Set a configuration field")
+@settings.command(help="Set a setting")
 @click.argument("key")
 @click.argument("value")
 @click.pass_context
 def set(ctx, key, value):
-    ctx.obj.set_config(**{key: value})
-    pprint_md(ctx.obj.config)
+    ctx.obj.set_settings(**{key: value})
+    pprint_md(ctx.obj.settings)
 
 
 @cli.command(help="Run the smoke tests against a Notion URL")
@@ -74,7 +74,7 @@ def set(ctx, key, value):
 def smoke_tests(ctx, url):
     from notion.smoke_test import run_live_smoke_test
 
-    run_live_smoke_test(ctx.config.token, url)
+    run_live_smoke_test(ctx.settings.token, url)
 
 
 if __name__ == "__main__":
