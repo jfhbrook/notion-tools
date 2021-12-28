@@ -1,29 +1,29 @@
+import base64
+from copy import deepcopy
 import mimetypes
 import os
 import random
-import requests
 import time
+from urllib.request import quote
 import uuid
-import base64
 
 from cached_property import cached_property
-from copy import deepcopy
-from urllib.request import quote
+import requests
 
 from .logger import logger
-from .maps import property_map, field_map, mapper
-from .markdown import plaintext_to_notion, notion_to_plaintext
+from .maps import field_map, mapper, property_map
+from .markdown import notion_to_plaintext, plaintext_to_notion
 from .operations import build_operation
 from .records import Record
-from .settings import S3_URL_PREFIX, BASE_URL
+from .settings import BASE_URL, S3_URL_PREFIX
 from .utils import (
-    extract_id,
-    now,
-    get_embed_link,
-    get_embed_data,
     add_signed_prefix_as_needed,
-    remove_signed_prefix_as_needed,
+    extract_id,
     get_by_path,
+    get_embed_data,
+    get_embed_link,
+    now,
+    remove_signed_prefix_as_needed,
 )
 
 
@@ -455,6 +455,7 @@ class ColumnBlock(Block):
 
     _type = "column"
 
+
 class TableOfContentsBlock(Block):
 
     _type = "table_of_contents"
@@ -483,7 +484,7 @@ class BasicBlock(Block):
 
     def _str_fields(self):
         return super()._str_fields() + ["title"]
-        
+
     title_list = field_map(
         ["properties", "title"],
         python_to_api=lambda x: [[x]],
@@ -491,13 +492,14 @@ class BasicBlock(Block):
     )
 
     def _get_title(self):
-        text=""
+        text = ""
         for list in self.title_list:
             if list[0] == "⁍":
-                    text+=list[1][0][1]
+                text += list[1][0][1]
             else:
-                text+=list[0]
+                text += list[0]
         return text
+
     @property
     def title(self):
         try:
@@ -566,7 +568,7 @@ class PageBlock(BasicBlock):
         api_to_python=add_signed_prefix_as_needed,
         python_to_api=remove_signed_prefix_as_needed,
     )
-    
+
     cover_position = field_map("format.page_cover_position")
 
     locked = field_map("format.block_locked")
@@ -589,56 +591,59 @@ class PageBlock(BasicBlock):
     def set_full_width(self, full_width):
         args = {"page_full_width": full_width}
         self._client.submit_transaction(
-            [build_operation(
-                id=self.id, path=["format"], args=args, command="update"
-            )]
+            [build_operation(id=self.id, path=["format"], args=args, command="update")]
         )
         self.refresh()
 
     def set_small_text(self, small_text):
         args = {"page_small_text": small_text}
         self._client.submit_transaction(
-            [build_operation(
-                id=self.id, path=["format"], args=args, command="update"
-            )]
+            [build_operation(id=self.id, path=["format"], args=args, command="update")]
         )
         self.refresh()
 
     def set_page_font(self, page_font):
         args = {"page_font": page_font}
         self._client.submit_transaction(
-            [build_operation(
-                id=self.id, path=["format"], args=args, command="update"
-            )]
+            [build_operation(id=self.id, path=["format"], args=args, command="update")]
         )
         self.refresh()
 
     def set_page_icon(self, icon):
 
         self._client.submit_transaction(
-            [build_operation(
-                id=self.id, path=["format", "page_icon"], args=icon, command="set"
-            )])
+            [
+                build_operation(
+                    id=self.id, path=["format", "page_icon"], args=icon, command="set"
+                )
+            ]
+        )
 
     def set_page_cover(self, args, page_cover_position=0.5):
 
         postion_args = {"page_cover_position": page_cover_position}
         self._client.submit_transaction(
-            [build_operation(
-                id=self.id, path=["format"], args=postion_args, command="update"
-            ),build_operation(
-                id=self.id, path=["format", "page_cover"], args=args, command="set"
-            )]
+            [
+                build_operation(
+                    id=self.id, path=["format"], args=postion_args, command="update"
+                ),
+                build_operation(
+                    id=self.id, path=["format", "page_cover"], args=args, command="set"
+                ),
+            ]
         )
 
     def set_page_cover_position(self, page_cover_position):
 
         postion_args = {"page_cover_position": page_cover_position}
         self._client.submit_transaction(
-            [build_operation(
-                id=self.id, path=["format"], args=postion_args, command="update"
-            )]
+            [
+                build_operation(
+                    id=self.id, path=["format"], args=postion_args, command="update"
+                )
+            ]
         )
+
 
 class BulletedListBlock(BasicBlock):
 
@@ -738,8 +743,11 @@ class EmbedOrUploadBlock(EmbedBlock):
     def download_file(self, path):
 
         # "oneliner" helper to safely unwrap lists, see: https://bit.ly/35SUfMK
-        unwrap = lambda x: unwrap(next(iter(x), None)) \
-                if '__iter__' in dir(x) and not isinstance(x, str) else x
+        unwrap = (
+            lambda x: unwrap(next(iter(x), None))
+            if "__iter__" in dir(x) and not isinstance(x, str)
+            else x
+        )
 
         record_data = self._get_record_data()
         sources = record_data.get("properties", {}).get("source", [])

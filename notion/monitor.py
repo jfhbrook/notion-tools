@@ -1,12 +1,12 @@
+from collections import defaultdict
+from inspect import signature
 import json
 import re
-import requests
 import threading
 import time
 import uuid
 
-from collections import defaultdict
-from inspect import signature
+import requests
 from requests import HTTPError
 
 from .collection import Collection

@@ -1,10 +1,9 @@
-import commonmark
-import re
 import html
+import re
 from xml.dom import minidom
 
+import commonmark
 from commonmark.dump import prepare
-
 
 delimiters = {
     "!",

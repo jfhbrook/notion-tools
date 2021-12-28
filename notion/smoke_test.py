@@ -1,9 +1,8 @@
 from datetime import datetime
 
-from .client import *
 from .block import *
+from .client import *
 from .collection import NotionDate
-
 
 
 def run_live_smoke_test(token_v2, parent_page_url_or_id):
@@ -19,17 +18,24 @@ def run_live_smoke_test(token_v2, parent_page_url_or_id):
 
     print("Created base smoke test page at:", page.get_browseable_url())
 
-    #format PageBlock
+    # format PageBlock
 
     page.set_full_width(True)
     page.set_page_font("mono")
     page.set_small_text(True)
-    page.children.add_new(TextBlock, title="Page settings should be:\n - Full width: set\n - Small text: set \n - Page Font: Mono ")
+    page.children.add_new(
+        TextBlock,
+        title="Page settings should be:\n - Full width: set\n - Small text: set \n - Page Font: Mono ",
+    )
 
-    #set cover with local notion file
-    page.set_page_cover("/images/page-cover/nasa_space_shuttle_columbia_and_sunrise.jpg", 0.8)
+    # set cover with local notion file
+    page.set_page_cover(
+        "/images/page-cover/nasa_space_shuttle_columbia_and_sunrise.jpg", 0.8
+    )
 
-    page.set_page_cover("https://www.birdlife.org/sites/default/files/styles/1600/public/slide.jpg", 0.1)
+    page.set_page_cover(
+        "https://www.birdlife.org/sites/default/files/styles/1600/public/slide.jpg", 0.1
+    )
 
     page.set_page_cover_position(0.7)
     icon = "📫"
@@ -100,8 +106,6 @@ def run_live_smoke_test(token_v2, parent_page_url_or_id):
 
     page.children.add_new(CalloutBlock, title="I am a callout", icon="🤞")
 
-
-
     cvb = page.children.add_new(CollectionViewBlock)
     cvb.collection = client.get_collection(
         client.create_record("collection", parent=cvb, schema=get_collection_schema())
@@ -139,7 +143,9 @@ def run_live_smoke_test(token_v2, parent_page_url_or_id):
     row1.some_date = NotionDate(start, end=end, timezone=timezone, reminder=reminder)
     another_start = datetime.strptime("2021-02-01 09:30", "%Y-%m-%d %H:%M")
     another_end = datetime.strptime("2021-02-03 20:45", "%Y-%m-%d %H:%M")
-    row1.another_date = NotionDate(another_start, end=another_end, timezone=timezone, reminder=reminder)
+    row1.another_date = NotionDate(
+        another_start, end=another_end, timezone=timezone, reminder=reminder
+    )
 
     # add another row
     row2 = cvb.collection.add_row(person=client.current_user, title="Metallic penguins")
@@ -188,15 +194,14 @@ def run_live_smoke_test(token_v2, parent_page_url_or_id):
     # search the entire space
     # Search endpoint is currently returning no results when searching for special_code and 'penguins'.
 
-    #assert row1 in client.search_blocks(search=special_code)
-    #assert row1 not in client.search_blocks(search="penguins")
-    #assert row2 not in client.search_blocks(search=special_code)
-    #assert row2 in client.search_blocks(search="penguins")
+    # assert row1 in client.search_blocks(search=special_code)
+    # assert row1 not in client.search_blocks(search="penguins")
+    # assert row2 not in client.search_blocks(search=special_code)
+    # assert row2 in client.search_blocks(search="penguins")
 
-    #format TableView
+    # format TableView
 
-
-    #Wrap Cell property
+    # Wrap Cell property
     view.format_set_wrap_cell(True)
 
     view.refresh_view()
@@ -208,8 +213,10 @@ def run_live_smoke_test(token_v2, parent_page_url_or_id):
     property_width = {"category": 100}
     view.format_properties(property_visibility, property_width)
 
-    tableProperties_findIdx = lambda prop: [True if x["property"] == prop else False for x in
-                                    view_format["table_properties"]].index(True)
+    tableProperties_findIdx = lambda prop: [
+        True if x["property"] == prop else False
+        for x in view_format["table_properties"]
+    ].index(True)
 
     view.refresh_view()
     view_format = view.get("format")
@@ -223,8 +230,10 @@ def run_live_smoke_test(token_v2, parent_page_url_or_id):
     assert view_format["table_properties"][idx]["width"] == 100
 
     # Add Filter to TableView
-    view_filter = [{"or": [["name", "string_contains", "exact", "Metallic"]]},
-                   {"or": [["person", "is_empty", "", ""],["category", "enum_is", "exact", "A"]]}]
+    view_filter = [
+        {"or": [["name", "string_contains", "exact", "Metallic"]]},
+        {"or": [["person", "is_empty", "", ""], ["category", "enum_is", "exact", "A"]]},
+    ]
     view.update_view_filter(view_filter)
 
     view.refresh_view()
@@ -233,23 +242,22 @@ def run_live_smoke_test(token_v2, parent_page_url_or_id):
     assert view_query["filter"] == get_expected_filter()
 
     # Add Sort to TableView
-    view.update_view_sort([["name","descending"]])
+    view.update_view_sort([["name", "descending"]])
 
     view.refresh_view()
     view_query = view.get("query2")
 
-    assert view_query["sort"] == [{"property":"title","direction":"descending"}]
+    assert view_query["sort"] == [{"property": "title", "direction": "descending"}]
 
     # Add Aggregator to TableView
-    view.update_view_aggregation([["name","count"]])
+    view.update_view_aggregation([["name", "count"]])
 
     view.refresh_view()
     view_query = view.get("query2")
 
     assert view_query["aggregations"] == [{"property": "title", "aggregator": "count"}]
 
-
-    #Format BoardView
+    # Format BoardView
 
     board_view = cvb.views.add_new(view_type="board")
 
@@ -260,62 +268,90 @@ def run_live_smoke_test(token_v2, parent_page_url_or_id):
     assert board_view.group_by == view.collection.get_schema_property("tags")["id"]
 
     # Formatting can set visibility of properties, visibility and width of columns, board_cover, board_cover_size and board_cover_aspect
-    properties_visibility = {"files":False, "Estimated Value": False}
-    column_values_hidden = {"default": True, "B":True}
+    properties_visibility = {"files": False, "Estimated Value": False}
+    column_values_hidden = {"default": True, "B": True}
 
-    board_view.format_properties(properties_visibility, column_values_hidden, "files", "large", "contain")
+    board_view.format_properties(
+        properties_visibility, column_values_hidden, "files", "large", "contain"
+    )
 
     board_view.refresh_view()
 
     view_format = board_view.get("format")
     assert view_format == get_expected_board_format()
 
-    #Format CalendarView
+    # Format CalendarView
     calendar_view = cvb.views.add_new(view_type="calendar")
 
     calendar_view.update_calendar_by("Another Date")
 
     calendar_view.refresh_view()
-    assert calendar_view.calendar_by == view.collection.get_schema_property("Another Date")["id"]
+    assert (
+        calendar_view.calendar_by
+        == view.collection.get_schema_property("Another Date")["id"]
+    )
 
     calendar_view.format_properties(properties_visibility)
 
     view_format = calendar_view.get("format")
     assert view_format == get_expected_calendar_format()
 
-    #Format GalleryView
+    # Format GalleryView
     gallery_view = cvb.views.add_new(view_type="gallery")
 
-    gallery_view.format_properties(properties_visibility, 100, "files", "large", "contain")
+    gallery_view.format_properties(
+        properties_visibility, 100, "files", "large", "contain"
+    )
 
     view_format = gallery_view.get("format")
     assert view_format == get_expected_gallery_format()
 
-    #Format TimelineView
+    # Format TimelineView
     timeline_view = cvb.views.add_new(view_type="timeline")
 
-    timeline_view.update_timeline_by("Another Date","Some Date")
+    timeline_view.update_timeline_by("Another Date", "Some Date")
 
     timeline_view.refresh_view()
-    assert timeline_view.timeline_by == view.collection.get_schema_property("Another Date")["id"]
-    assert timeline_view.timeline_by_end == view.collection.get_schema_property("Some Date")["id"]
+    assert (
+        timeline_view.timeline_by
+        == view.collection.get_schema_property("Another Date")["id"]
+    )
+    assert (
+        timeline_view.timeline_by_end
+        == view.collection.get_schema_property("Some Date")["id"]
+    )
 
     centerTime = datetime.strptime("2021-01-01 09:30", "%Y-%m-%d %H:%M")
     timeline_preference = ["year", centerTime]
-    timeline_table_properties_visibility = {"files": True, "Estimated Value": True, "Category": False, "Another Date": False, "Person":True}
-    timeline_table_properties_width = {"files": 200, "Estimated Value": 100, "Person":500}
+    timeline_table_properties_visibility = {
+        "files": True,
+        "Estimated Value": True,
+        "Category": False,
+        "Another Date": False,
+        "Person": True,
+    }
+    timeline_table_properties_width = {
+        "files": 200,
+        "Estimated Value": 100,
+        "Person": 500,
+    }
     timeline_properties_visibility = {"another date": False, "person": False}
     on_first_load_show = 100
     timeline_show_table = True
 
-    timeline_view.format_properties(timeline_properties_visibility, timeline_table_properties_visibility,
-                                    timeline_table_properties_width,
-                                    timeline_preference, timeline_show_table, on_first_load_show)
+    timeline_view.format_properties(
+        timeline_properties_visibility,
+        timeline_table_properties_visibility,
+        timeline_table_properties_width,
+        timeline_preference,
+        timeline_show_table,
+        on_first_load_show,
+    )
 
     view_format = timeline_view.get("format")
     assert view_format == get_expected_timeline_format()
 
-    #Format ListView
+    # Format ListView
     list_view = cvb.views.add_new(view_type="list")
 
     properties_visibility = {"files": False, "Estimated Value": False}
@@ -326,11 +362,7 @@ def run_live_smoke_test(token_v2, parent_page_url_or_id):
 
     # Run an "aggregation" query
     aggregations = [
-        {
-            "property": "estimated_value", 
-            "aggregator": "sum", 
-            "id": "total_value"
-        }
+        {"property": "estimated_value", "aggregator": "sum", "id": "total_value"}
     ]
     result = view.build_query(aggregate=aggregations).execute()
     assert result.get_aggregates()[0]["value"] == 64
@@ -369,17 +401,27 @@ def run_live_smoke_test(token_v2, parent_page_url_or_id):
     assert row1.some_date.reminder == reminder
 
     # Test update schema with new props
-    for type_ in ["number", "select", "multi_select", "date", "person", "file", "checkbox", "url", "email",
-                  "phone_number", "created_time", "created_by", "last_edited_time", "last_edited_by", "formula",
-                  "rollup", "text",
-                  # "relation"  # another contract for this type, requires another db at creation time
-                  ]:
-        cvb.collection.update_schema_properties({
-            type_: dict(
-                name=type_,
-                type=type_
-            )
-        })
+    for type_ in [
+        "number",
+        "select",
+        "multi_select",
+        "date",
+        "person",
+        "file",
+        "checkbox",
+        "url",
+        "email",
+        "phone_number",
+        "created_time",
+        "created_by",
+        "last_edited_time",
+        "last_edited_by",
+        "formula",
+        "rollup",
+        "text",
+        # "relation"  # another contract for this type, requires another db at creation time
+    ]:
+        cvb.collection.update_schema_properties({type_: dict(name=type_, type=type_)})
         assert cvb.collection.get_schema_property(type_)
 
     print(
@@ -388,7 +430,6 @@ def run_live_smoke_test(token_v2, parent_page_url_or_id):
     input()
 
     _delete_page_fully(page)
-
 
 
 def _delete_page_fully(page):
@@ -419,86 +460,157 @@ def _delete_page_fully(page):
         id
     )
 
+
 def get_expected_filter():
-    return {"operator":"or", "filters":[{'filter': {'value': {'type': 'exact', 'value': 'Metallic'}, 'operator': 'string_contains'}, 'property': 'title'},
-            {'filters': [{'filter': {'value': {'type': '', 'value': ''}, 'operator': 'is_empty'}, 'property': 'LL[('},
-                         {'filter': {'value': {'type': 'exact', 'value': 'A'}, 'operator': 'enum_is'}, 'property': '=d{q'}], 'operator': 'or'}]}
+    return {
+        "operator": "or",
+        "filters": [
+            {
+                "filter": {
+                    "value": {"type": "exact", "value": "Metallic"},
+                    "operator": "string_contains",
+                },
+                "property": "title",
+            },
+            {
+                "filters": [
+                    {
+                        "filter": {
+                            "value": {"type": "", "value": ""},
+                            "operator": "is_empty",
+                        },
+                        "property": "LL[(",
+                    },
+                    {
+                        "filter": {
+                            "value": {"type": "exact", "value": "A"},
+                            "operator": "enum_is",
+                        },
+                        "property": "=d{q",
+                    },
+                ],
+                "operator": "or",
+            },
+        ],
+    }
+
 
 def get_expected_list_format():
-    return {'list_properties': [{'property': '%9:q', 'visible': True}, {'property': '4Jv$', 'visible': True},
-                                {'property': '=d{q', 'visible': True}, {'property': '=d{|', 'visible': True},
-                                {'property': 'LL[(', 'visible': True}, {'property': 'OBcJ', 'visible': True},
-                                {'property': 'TwR:', 'visible': True},
-                                {'property': 'dV$q', 'visible': False}, {'property': 'qXLc', 'visible': True},
-                                {'property': 'title', 'visible': True}],
-            'inline_collection_first_load_limit': {'type': 'load_limit', 'limit': 100}}
+    return {
+        "list_properties": [
+            {"property": "%9:q", "visible": True},
+            {"property": "4Jv$", "visible": True},
+            {"property": "=d{q", "visible": True},
+            {"property": "=d{|", "visible": True},
+            {"property": "LL[(", "visible": True},
+            {"property": "OBcJ", "visible": True},
+            {"property": "TwR:", "visible": True},
+            {"property": "dV$q", "visible": False},
+            {"property": "qXLc", "visible": True},
+            {"property": "title", "visible": True},
+        ],
+        "inline_collection_first_load_limit": {"type": "load_limit", "limit": 100},
+    }
+
 
 def get_expected_timeline_format():
 
-    return {'timeline_properties':
-                [{'property': '%9:q', 'visible': True},
-                 {'property': '4Jv$', 'visible': True},
-                 {'property': '=d{q', 'visible': True},
-                 {'property': '=d{|', 'visible': True},
-                 {'property': 'LL[(', 'visible': False},
-                 {'property': 'OBcJ', 'visible': True},
-                 {'property': 'TwR:', 'visible': True},
-                 {'property': 'dV$q', 'visible': True},
-                 {'property': 'qXLc', 'visible': False},
-                 {'property': 'title', 'visible': True}],
-            'timeline_table_properties': [{'property': '%9:q', 'visible': True, 'width': 200},
-                                          {'property': '4Jv$', 'visible': True, 'width': 100},
-                                          {'property': '=d{q', 'visible': False, 'width': 200},
-                                          {'property': '=d{|', 'visible': True, 'width': 200},
-                                          {'property': 'LL[(', 'visible': True, 'width': 500},
-                                          {'property': 'OBcJ', 'visible': True, 'width': 200},
-                                          {'property': 'TwR:', 'visible': True, 'width': 200},
-                                          {'property': 'dV$q', 'visible': True, 'width': 200},
-                                          {'property': 'qXLc', 'visible': False, 'width': 200},
-                                          {'property': 'title', 'visible': True, 'width': 200}],
-            'inline_collection_first_load_limit': {'type': 'load_limit', 'limit': 100},
-            'timeline_show_table': True,
-            'timeline_preference': {'zoomLevel': 'year', 'centerTimestamp': 1609504200.0}}
+    return {
+        "timeline_properties": [
+            {"property": "%9:q", "visible": True},
+            {"property": "4Jv$", "visible": True},
+            {"property": "=d{q", "visible": True},
+            {"property": "=d{|", "visible": True},
+            {"property": "LL[(", "visible": False},
+            {"property": "OBcJ", "visible": True},
+            {"property": "TwR:", "visible": True},
+            {"property": "dV$q", "visible": True},
+            {"property": "qXLc", "visible": False},
+            {"property": "title", "visible": True},
+        ],
+        "timeline_table_properties": [
+            {"property": "%9:q", "visible": True, "width": 200},
+            {"property": "4Jv$", "visible": True, "width": 100},
+            {"property": "=d{q", "visible": False, "width": 200},
+            {"property": "=d{|", "visible": True, "width": 200},
+            {"property": "LL[(", "visible": True, "width": 500},
+            {"property": "OBcJ", "visible": True, "width": 200},
+            {"property": "TwR:", "visible": True, "width": 200},
+            {"property": "dV$q", "visible": True, "width": 200},
+            {"property": "qXLc", "visible": False, "width": 200},
+            {"property": "title", "visible": True, "width": 200},
+        ],
+        "inline_collection_first_load_limit": {"type": "load_limit", "limit": 100},
+        "timeline_show_table": True,
+        "timeline_preference": {"zoomLevel": "year", "centerTimestamp": 1609504200.0},
+    }
+
 
 def get_expected_calendar_format():
-    return {'calendar_properties':
-                [{'property': '%9:q', 'visible': True},
-                 {'property': '4Jv$', 'visible': False},
-                 {'property': '=d{q', 'visible': True},
-                 {'property': '=d{|', 'visible': True},
-                 {'property': 'LL[(', 'visible': True},
-                 {'property': 'OBcJ', 'visible': True},
-                 {'property': 'TwR:', 'visible': True},
-                 {'property': 'dV$q', 'visible': False},
-                 {'property': 'qXLc', 'visible': True},
-                 {'property': 'title', 'visible': True}]}
+    return {
+        "calendar_properties": [
+            {"property": "%9:q", "visible": True},
+            {"property": "4Jv$", "visible": False},
+            {"property": "=d{q", "visible": True},
+            {"property": "=d{|", "visible": True},
+            {"property": "LL[(", "visible": True},
+            {"property": "OBcJ", "visible": True},
+            {"property": "TwR:", "visible": True},
+            {"property": "dV$q", "visible": False},
+            {"property": "qXLc", "visible": True},
+            {"property": "title", "visible": True},
+        ]
+    }
+
 
 def get_expected_board_format():
-    return {'board_cover': {'type': 'property', 'property': 'dV$q'},
-            'board_groups2': [{'value': {'type': 'multi_select'}, 'hidden': True, 'property': '=d{|'},
-                              {'value': {'type': 'multi_select', 'value': 'B'}, 'hidden': True, 'property': '=d{|'}],
-            'board_cover_size': 'large',
-            'board_properties': [{'width': 200, 'visible': True, 'property': '%9:q'},
-                                 {'width': 200, 'visible': False, 'property': '4Jv$'},
-                                 {'width': 200, 'visible': True, 'property': '=d{q'},
-                                 {'width': 200, 'visible': True, 'property': '=d{|'},
-                                 {'width': 200, 'visible': True, 'property': 'LL[('},
-                                 {'width': 200, 'visible': True, 'property': 'OBcJ'},
-                                 {'width': 200, 'visible': True, 'property': 'TwR:'},
-                                 {'width': 200, 'visible': False, 'property': 'dV$q'},
-                                 {'width': 200, 'visible': True, 'property': 'qXLc'},
-                                 {'width': 200, 'visible': True, 'property': 'title'}],
-            'board_cover_aspect': 'contain'}
+    return {
+        "board_cover": {"type": "property", "property": "dV$q"},
+        "board_groups2": [
+            {"value": {"type": "multi_select"}, "hidden": True, "property": "=d{|"},
+            {
+                "value": {"type": "multi_select", "value": "B"},
+                "hidden": True,
+                "property": "=d{|",
+            },
+        ],
+        "board_cover_size": "large",
+        "board_properties": [
+            {"width": 200, "visible": True, "property": "%9:q"},
+            {"width": 200, "visible": False, "property": "4Jv$"},
+            {"width": 200, "visible": True, "property": "=d{q"},
+            {"width": 200, "visible": True, "property": "=d{|"},
+            {"width": 200, "visible": True, "property": "LL[("},
+            {"width": 200, "visible": True, "property": "OBcJ"},
+            {"width": 200, "visible": True, "property": "TwR:"},
+            {"width": 200, "visible": False, "property": "dV$q"},
+            {"width": 200, "visible": True, "property": "qXLc"},
+            {"width": 200, "visible": True, "property": "title"},
+        ],
+        "board_cover_aspect": "contain",
+    }
+
 
 def get_expected_gallery_format():
-    return{'gallery_properties': [{'property': '%9:q', 'visible': True}, {'property': '4Jv$', 'visible': False},
-                            {'property': '=d{q', 'visible': True}, {'property': '=d{|', 'visible': True},
-                            {'property': 'LL[(', 'visible': True}, {'property': 'OBcJ', 'visible': True},
-                            {'property': 'TwR:', 'visible': True}, {'property': 'dV$q', 'visible': False},
-                            {'property': 'qXLc', 'visible': True}, {'property': 'title', 'visible': True}],
-     'inline_collection_first_load_limit': {'type': 'load_limit', 'limit': 100},
-     'gallery_cover': {'type': 'property', 'property': 'dV$q'}, 'gallery_cover_size': 'large',
-     'gallery_cover_aspect': 'contain'}
+    return {
+        "gallery_properties": [
+            {"property": "%9:q", "visible": True},
+            {"property": "4Jv$", "visible": False},
+            {"property": "=d{q", "visible": True},
+            {"property": "=d{|", "visible": True},
+            {"property": "LL[(", "visible": True},
+            {"property": "OBcJ", "visible": True},
+            {"property": "TwR:", "visible": True},
+            {"property": "dV$q", "visible": False},
+            {"property": "qXLc", "visible": True},
+            {"property": "title", "visible": True},
+        ],
+        "inline_collection_first_load_limit": {"type": "load_limit", "limit": 100},
+        "gallery_cover": {"type": "property", "property": "dV$q"},
+        "gallery_cover_size": "large",
+        "gallery_cover_aspect": "contain",
+    }
+
 
 def get_collection_schema():
     return {
@@ -535,14 +647,8 @@ def get_collection_schema():
                 },
             ],
         },
-        "eselect": {
-            "name": "eselect",
-            "type": "select"
-        },
-        "emselect": {
-            "name": "emselect",
-            "type": "multi_select"
-        },
+        "eselect": {"name": "eselect", "type": "select"},
+        "emselect": {"name": "emselect", "type": "multi_select"},
         "LL[(": {"name": "Person", "type": "person"},
         "4Jv$": {"name": "Estimated value", "type": "number"},
         "OBcJ": {"name": "Where to?", "type": "url"},

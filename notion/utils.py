@@ -1,12 +1,12 @@
-import requests
+from datetime import datetime
+from urllib.parse import parse_qs, quote_plus, unquote_plus, urlparse
 import uuid
 
 from bs4 import BeautifulSoup
-from urllib.parse import urlparse, parse_qs, quote_plus, unquote_plus
-from datetime import datetime
+import requests
 from slugify import slugify as _dash_slugify
 
-from .settings import BASE_URL, SIGNED_URL_PREFIX, S3_URL_PREFIX, S3_URL_PREFIX_ENCODED
+from .settings import BASE_URL, S3_URL_PREFIX, S3_URL_PREFIX_ENCODED, SIGNED_URL_PREFIX
 
 
 class InvalidNotionIdentifier(Exception):

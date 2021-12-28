@@ -1,15 +1,16 @@
-from requests.packages.urllib3.util.retry import log
 from contextlib import contextmanager
-from cached_property import cached_property
 from copy import deepcopy
-from datetime import datetime, date
-from tzlocal import get_localzone
-from uuid import uuid1
+from datetime import date, datetime
 from typing import Any, Dict, Optional
+from uuid import uuid1
 
-from .block import Block, PageBlock, Children, CollectionViewBlock
+from cached_property import cached_property
+from requests.packages.urllib3.util.retry import log
+from tzlocal import get_localzone
+
+from .block import Block, Children, CollectionViewBlock, PageBlock
 from .logger import logger
-from .maps import property_map, field_map
+from .maps import field_map, property_map
 from .markdown import markdown_to_notion, notion_to_markdown
 from .operations import build_operation
 from .records import Record
@@ -19,7 +20,6 @@ from .utils import (
     remove_signed_prefix_as_needed,
     slugify,
 )
-
 
 Reminder = Dict[str, Any]
 
@@ -31,7 +31,9 @@ class NotionDate(object):
     timezone = None
     reminder = None
 
-    def __init__(self, start, end=None, timezone=None, reminder: Optional[Reminder] = None):
+    def __init__(
+        self, start, end=None, timezone=None, reminder: Optional[Reminder] = None
+    ):
         self.start = start
         self.end = end
         self.timezone = timezone
@@ -110,16 +112,21 @@ class NotionDate(object):
         string = ""
 
         start_date, start_time = self._format_datetime(self.start)
-        if start_date: string += start_date
-        if start_time: string += "T" + start_time
+        if start_date:
+            string += start_date
+        if start_time:
+            string += "T" + start_time
 
         end_date, end_time = self._format_datetime(self.end)
-        if end_date: string += ";" + end_date
-        if end_time: string += "T" + end_time
+        if end_date:
+            string += ";" + end_date
+        if end_time:
+            string += "T" + end_time
 
         # TODO if self.reminder:
 
         return string
+
 
 class NotionSelect(object):
     valid_colors = [
@@ -190,7 +197,6 @@ class Collection(Record):
         "rollup",
         # "relation"  # another contract for this type, requires another db at creation time
     ]
-
 
     @property
     def templates(self):
@@ -320,7 +326,6 @@ class Collection(Record):
         )
 
 
-
 class CollectionView(Record):
     """
     A "view" is a particular visualization of a collection, with a "type" (board, table, list, etc)
@@ -343,13 +348,15 @@ class CollectionView(Record):
 
         for prop in self.get("format.table_properties"):
             schema = self.collection.get_schema_property(prop["property"])
-            columns.append({
-                "name" : schema["name"],
-                "id" : schema["id"],
-                "width" : prop["width"],
-                "visible" : prop["visible"],
-                "type" : schema["type"]
-            })
+            columns.append(
+                {
+                    "name": schema["name"],
+                    "id": schema["id"],
+                    "width": prop["width"],
+                    "visible": prop["visible"],
+                    "type": schema["type"],
+                }
+            )
 
         return columns
 
@@ -367,17 +374,18 @@ class CollectionView(Record):
 
     def update_view_sort(self, sort_list):
         """
-            sort:list - [["property", "direction],...]
+        sort:list - [["property", "direction],...]
         """
 
         with self._update_query2() as query2_content:
             sort_query = []
             for sort in sort_list:
-                assert type(sort) is list, "sort_list has invalid format. Expected [[\"property\", \"direction\"],...] "
+                assert (
+                    type(sort) is list
+                ), 'sort_list has invalid format. Expected [["property", "direction"],...] '
                 property_id = self.collection.get_schema_property(sort[0])["id"]
-                sort_query.append({"property":property_id, "direction":sort[1]})
+                sort_query.append({"property": property_id, "direction": sort[1]})
             query2_content["sort"] = sort_query
-
 
     def update_view_filter(self, filters):
         with self._update_query2() as query2_content:
@@ -391,52 +399,75 @@ class CollectionView(Record):
             result_query = self.generate_aggregation_query(aggregations)
             query2_content["aggregations"] = result_query
 
-
     def _submit_view_transaction(self, args, path=None):
         path = [] if path is None else path
         self._client.submit_transaction(
             build_operation(
-                id=self.id, path=path, args=args, command="update", table="collection_view"
-            ), generate_update_last_edited=False, updated_blocks=[self.parent.id]
+                id=self.id,
+                path=path,
+                args=args,
+                command="update",
+                table="collection_view",
+            ),
+            generate_update_last_edited=False,
+            updated_blocks=[self.parent.id],
         )
 
     def generate_aggregation_query(self, aggregations):
         """
-            aggregations: list - [["property", "aggregator"],...]
+        aggregations: list - [["property", "aggregator"],...]
         """
 
         result_query = {}
         aggregation_list = []
         for aggregation in aggregations:
-            assert type(aggregation) is list,  "Aggregation {} must be list".format(str(aggregation))
+            assert type(aggregation) is list, "Aggregation {} must be list".format(
+                str(aggregation)
+            )
             property_id = self.collection.get_schema_property(aggregation[0])["id"]
-            aggregation_list.append({"property":property_id,"aggregator":aggregation[1]})
+            aggregation_list.append(
+                {"property": property_id, "aggregator": aggregation[1]}
+            )
 
         result_query = aggregation_list
         return result_query
 
     def generate_view_filter_query(self, filters):
         """
-            filters: list - [
-                                { "group operator" : [[slugfied property, operator, type, value],...]},
-                                { "group operator" : [[slugfied property, operator, type, value],...]}
-                            ]
+        filters: list - [
+                            { "group operator" : [[slugfied property, operator, type, value],...]},
+                            { "group operator" : [[slugfied property, operator, type, value],...]}
+                        ]
         """
-        #TODO - Currently helper cannot process chained Filter Groups
+        # TODO - Currently helper cannot process chained Filter Groups
         assert type(filters) is list
 
         filter_group_list = []
         for filter_dict in filters:
             assert type(filter_dict) is dict
             for group_operator, filter_group in filter_dict.items():
-                filters_dict = {"operator" : group_operator}
+                filters_dict = {"operator": group_operator}
                 filters_list = []
 
                 for filter in filter_group:
-                    assert type(filter) is list, "Filter {} must be list".format(str(filter))
-                    assert len(filter) == 4, "Filter {} must contain [slugfied property, operator, type, value]".format(str(filter))
+                    assert type(filter) is list, "Filter {} must be list".format(
+                        str(filter)
+                    )
+                    assert (
+                        len(filter) == 4
+                    ), "Filter {} must contain [slugfied property, operator, type, value]".format(
+                        str(filter)
+                    )
                     property_id = self.collection.get_schema_property(filter[0])["id"]
-                    filters_list.append({"property": property_id, "filter": {"operator": filter[1], "value": {"type": filter[2], "value":filter[3]}}})
+                    filters_list.append(
+                        {
+                            "property": property_id,
+                            "filter": {
+                                "operator": filter[1],
+                                "value": {"type": filter[2], "value": filter[3]},
+                            },
+                        }
+                    )
 
                 if len(filter_group) > 1:
                     filters_dict["filters"] = filters_list
@@ -449,10 +480,12 @@ class CollectionView(Record):
             return None
 
         main_filter = filter_group_list[0]
-        main_operator = main_filter[0] if type(main_filter) is list else main_filter["operator"]
-        result_query = {"filters":[], "operator":main_operator}
+        main_operator = (
+            main_filter[0] if type(main_filter) is list else main_filter["operator"]
+        )
+        result_query = {"filters": [], "operator": main_operator}
         for filter_group in filter_group_list:
-            #if filter is not a filter_group
+            # if filter is not a filter_group
             if type(filter_group) is list:
                 result_query["filters"].append(filter_group[1][0])
             else:
@@ -463,7 +496,9 @@ class CollectionView(Record):
     @contextmanager
     def _update_query2(self):
         try:
-            self._client.refresh_records(collection_view=self.id, block=self.collection.id)
+            self._client.refresh_records(
+                collection_view=self.id, block=self.collection.id
+            )
             query2_content = self.get("query2")
             query2_content = query2_content if query2_content is not None else {}
             yield query2_content
@@ -474,7 +509,9 @@ class CollectionView(Record):
     @contextmanager
     def _update_format(self):
         try:
-            self._client.refresh_records(collection_view=self.id, block=self.collection.id)
+            self._client.refresh_records(
+                collection_view=self.id, block=self.collection.id
+            )
             format_content = self.get("format")
             format_content = format_content if format_content is not None else {}
             yield format_content
@@ -484,6 +521,7 @@ class CollectionView(Record):
 
     def refresh_view(self):
         self._client.refresh_records(collection_view=self.id, block=self.collection.id)
+
 
 class BoardView(CollectionView):
 
@@ -497,26 +535,38 @@ class BoardView(CollectionView):
     def update_group_by(self, group_property):
 
         with self._update_query2() as query2_content:
-            query2_content["group_by"] = self.collection.get_schema_property(group_property)["id"]
+            query2_content["group_by"] = self.collection.get_schema_property(
+                group_property
+            )["id"]
 
-    def format_properties(self, properties_visibility, column_values_hidden,
-                          board_cover=None, board_cover_size=None, board_cover_aspect=None):
+    def format_properties(
+        self,
+        properties_visibility,
+        column_values_hidden,
+        board_cover=None,
+        board_cover_size=None,
+        board_cover_aspect=None,
+    ):
         """
-               Format TableView properties.
-               properties_visibility: dict - {"property" : visible}
-               column_values_hidden: list - group_by property {"default | value" : hidden}
-               board_cover: str - page_content or page_cover
-               board_cover_size: str - large, medium or small
-               board_cover_aspect: str - cover or contain
+        Format TableView properties.
+        properties_visibility: dict - {"property" : visible}
+        column_values_hidden: list - group_by property {"default | value" : hidden}
+        board_cover: str - page_content or page_cover
+        board_cover_size: str - large, medium or small
+        board_cover_aspect: str - cover or contain
         """
-        properties_visibility = {slugify(key):v for key, v in properties_visibility.items()}
+        properties_visibility = {
+            slugify(key): v for key, v in properties_visibility.items()
+        }
         """
             Proprerties Width can be set, however no behavior is currently observed on the interface. 
             properties_width: dict - {"properties" : width}
         """
         with self._update_format() as format_content:
-            find_idx = lambda prop: [True if x["property"] == prop else False for x in
-                                     format_content["board_properties"]].index(True)
+            find_idx = lambda prop: [
+                True if x["property"] == prop else False
+                for x in format_content["board_properties"]
+            ].index(True)
 
             if "board_properties" not in format_content:
                 format_content["board_properties"] = []
@@ -526,11 +576,15 @@ class BoardView(CollectionView):
                 try:
                     idx = find_idx(property_id)
                 except:
-                    format_content["board_properties"].append({"property": property_id, "visible": True, "width": 200})
-                    idx = len(format_content["board_properties"])-1
+                    format_content["board_properties"].append(
+                        {"property": property_id, "visible": True, "width": 200}
+                    )
+                    idx = len(format_content["board_properties"]) - 1
 
                 if property["slug"] in properties_visibility:
-                    format_content["board_properties"][idx]["visible"] = properties_visibility[property["slug"]]
+                    format_content["board_properties"][idx][
+                        "visible"
+                    ] = properties_visibility[property["slug"]]
 
                 """
                 if property["slug"] in properties_width:
@@ -540,52 +594,82 @@ class BoardView(CollectionView):
                 if property["id"] == self.group_by:
                     board_groups = []
                     if "default" in column_values_hidden:
-                        board_groups.append({"property":property["id"], "value":{"type":property["type"]}, "hidden":column_values_hidden["default"]})
+                        board_groups.append(
+                            {
+                                "property": property["id"],
+                                "value": {"type": property["type"]},
+                                "hidden": column_values_hidden["default"],
+                            }
+                        )
                     for option in property["options"]:
                         option_value = option["value"]
                         if option_value in column_values_hidden:
-                            board_groups.append({"property": property["id"], "value": {"type": property["type"],
-                                                                                        "value":option_value},
-                                                  "hidden": column_values_hidden[option_value]})
+                            board_groups.append(
+                                {
+                                    "property": property["id"],
+                                    "value": {
+                                        "type": property["type"],
+                                        "value": option_value,
+                                    },
+                                    "hidden": column_values_hidden[option_value],
+                                }
+                            )
 
             if board_cover is not None:
                 is_property = self.collection.get_schema_property(board_cover)
                 if is_property is not None:
-                    format_content["board_cover"] = {"type": "property", "property": is_property["id"]}
+                    format_content["board_cover"] = {
+                        "type": "property",
+                        "property": is_property["id"],
+                    }
                 else:
                     format_content["board_cover"] = {"type": board_cover}
 
-            format_content["board_cover_size"] = board_cover_size if board_cover_size is not None else format_content["board_cover_size"]
-            format_content["board_cover_aspect"] = board_cover_aspect if board_cover_aspect is not None else format_content["board_cover_aspect"]
-            format_content["board_groups2"] = board_groups if board_groups is not None else format_content["board_groups2"]
+            format_content["board_cover_size"] = (
+                board_cover_size
+                if board_cover_size is not None
+                else format_content["board_cover_size"]
+            )
+            format_content["board_cover_aspect"] = (
+                board_cover_aspect
+                if board_cover_aspect is not None
+                else format_content["board_cover_aspect"]
+            )
+            format_content["board_groups2"] = (
+                board_groups
+                if board_groups is not None
+                else format_content["board_groups2"]
+            )
 
 
 class TableView(CollectionView):
 
     _type = "table"
 
-
     def format_set_wrap_cell(self, wrap_cell):
         """
-            wrap_cell: bool - Set Wrap Cells format in TableView
+        wrap_cell: bool - Set Wrap Cells format in TableView
         """
         args = {"table_wrap": wrap_cell}
         self._submit_view_transaction(args, ["format"])
 
-
     def format_properties(self, properties_visibility, properties_width=None):
         """
-               Format TableView properties.
-               properties_visibility: dict - {"property" : visible}
-               properties_width: dict - {"property" : width}
+        Format TableView properties.
+        properties_visibility: dict - {"property" : visible}
+        properties_width: dict - {"property" : width}
         """
-        properties_visibility = {slugify(key): v for key, v in properties_visibility.items()}
+        properties_visibility = {
+            slugify(key): v for key, v in properties_visibility.items()
+        }
         if properties_width is not None:
             properties_width = {slugify(key): v for key, v in properties_width.items()}
 
         with self._update_format() as format_content:
-            find_idx = lambda prop: [True if x["property"] == prop else False for x in
-                                     format_content["table_properties"]].index(True)
+            find_idx = lambda prop: [
+                True if x["property"] == prop else False
+                for x in format_content["table_properties"]
+            ].index(True)
 
             if "table_properties" not in format_content:
                 format_content["table_properties"] = []
@@ -595,15 +679,20 @@ class TableView(CollectionView):
                 try:
                     idx = find_idx(property_id)
                 except:
-                    format_content["table_properties"].append({"property": property_id, "visible": True, "width": 200})
-                    idx = len(format_content["table_properties"])-1
+                    format_content["table_properties"].append(
+                        {"property": property_id, "visible": True, "width": 200}
+                    )
+                    idx = len(format_content["table_properties"]) - 1
 
                 if property["slug"] in properties_visibility:
-                    format_content["table_properties"][idx]["visible"] = properties_visibility[property["slug"]]
+                    format_content["table_properties"][idx][
+                        "visible"
+                    ] = properties_visibility[property["slug"]]
 
                 if property["slug"] in properties_width:
-                    format_content["table_properties"][idx]["width"] = properties_width[property["slug"]]
-
+                    format_content["table_properties"][idx]["width"] = properties_width[
+                        property["slug"]
+                    ]
 
 
 class ListView(CollectionView):
@@ -612,29 +701,40 @@ class ListView(CollectionView):
 
     def format_properties(self, properties_visibility, on_first_load_show=None):
         """
-               Format CalendarView properties.
-               properties_visibility: dict - {"property" : visible}
+        Format CalendarView properties.
+        properties_visibility: dict - {"property" : visible}
         """
 
         with self._update_format() as format_content:
-            find_idx = lambda prop: [True if x["property"] == prop else False for x in format_content["list_properties"]].index(True)
+            find_idx = lambda prop: [
+                True if x["property"] == prop else False
+                for x in format_content["list_properties"]
+            ].index(True)
 
             if "list_properties" not in format_content:
                 format_content["list_properties"] = []
 
             if on_first_load_show is not None:
-                format_content["inline_collection_first_load_limit"] = {"type":"load_limit", "limit":on_first_load_show}
+                format_content["inline_collection_first_load_limit"] = {
+                    "type": "load_limit",
+                    "limit": on_first_load_show,
+                }
 
             for property in self.collection.get_schema_properties():
                 property_id = property["id"]
                 try:
                     idx = find_idx(property_id)
                 except:
-                    format_content["list_properties"].append({"property": property_id, "visible": True})
-                    idx = len(format_content["list_properties"])-1
+                    format_content["list_properties"].append(
+                        {"property": property_id, "visible": True}
+                    )
+                    idx = len(format_content["list_properties"]) - 1
 
                 if property["slug"] in properties_visibility:
-                    format_content["list_properties"][idx]["visible"] = properties_visibility[property["slug"]]
+                    format_content["list_properties"][idx][
+                        "visible"
+                    ] = properties_visibility[property["slug"]]
+
 
 class CalendarView(CollectionView):
 
@@ -651,17 +751,24 @@ class CalendarView(CollectionView):
     def update_calendar_by(self, date_property):
 
         with self._update_query2() as query2_content:
-            query2_content["calendar_by"] = self.collection.get_schema_property(date_property)["id"]
+            query2_content["calendar_by"] = self.collection.get_schema_property(
+                date_property
+            )["id"]
 
     def format_properties(self, properties_visibility):
         """
-               Format CalendarView properties.
-               properties_visibility: dict - {"property" : visible}
+        Format CalendarView properties.
+        properties_visibility: dict - {"property" : visible}
         """
-        properties_visibility = {slugify(key): v for key, v in properties_visibility.items()}
+        properties_visibility = {
+            slugify(key): v for key, v in properties_visibility.items()
+        }
 
         with self._update_format() as format_content:
-            find_idx = lambda prop: [True if x["property"] == prop else False for x in format_content["calendar_properties"]].index(True)
+            find_idx = lambda prop: [
+                True if x["property"] == prop else False
+                for x in format_content["calendar_properties"]
+            ].index(True)
 
             if "calendar_properties" not in format_content:
                 format_content["calendar_properties"] = []
@@ -671,11 +778,16 @@ class CalendarView(CollectionView):
                 try:
                     idx = find_idx(property_id)
                 except:
-                    format_content["calendar_properties"].append({"property": property_id, "visible": True})
-                    idx = len(format_content["calendar_properties"])-1
+                    format_content["calendar_properties"].append(
+                        {"property": property_id, "visible": True}
+                    )
+                    idx = len(format_content["calendar_properties"]) - 1
 
                 if property["slug"] in properties_visibility:
-                    format_content["calendar_properties"][idx]["visible"] = properties_visibility[property["slug"]]
+                    format_content["calendar_properties"][idx][
+                        "visible"
+                    ] = properties_visibility[property["slug"]]
+
 
 class GalleryView(CollectionView):
 
@@ -686,50 +798,76 @@ class GalleryView(CollectionView):
     gallery_cover_aspect = field_map("format.gallery_cover_aspect")
     on_first_load_show = field_map("format.inline_collection_first_load_limit")
 
-
-    def format_properties(self, properties_visibility, on_first_load_show=None,
-                          gallery_cover=None, gallery_cover_size=None, gallery_cover_aspect=None):
+    def format_properties(
+        self,
+        properties_visibility,
+        on_first_load_show=None,
+        gallery_cover=None,
+        gallery_cover_size=None,
+        gallery_cover_aspect=None,
+    ):
         """
-               Format TableView properties.
-               properties_visibility: dict - {"property" : visible}
-               column_values_hidden: list - group_by property {"default | value" : hidden}
-               gallery_cover: str - page_content or page_cover
-               gallery_cover_size: str - large, medium or small
-               gallery_cover_aspect: str - cover or contain
+        Format TableView properties.
+        properties_visibility: dict - {"property" : visible}
+        column_values_hidden: list - group_by property {"default | value" : hidden}
+        gallery_cover: str - page_content or page_cover
+        gallery_cover_size: str - large, medium or small
+        gallery_cover_aspect: str - cover or contain
         """
-        properties_visibility = {slugify(key):v for key, v in properties_visibility.items()}
+        properties_visibility = {
+            slugify(key): v for key, v in properties_visibility.items()
+        }
 
         with self._update_format() as format_content:
-            find_idx = lambda prop: [True if x["property"] == prop else False for x in
-                                     format_content["gallery_properties"]].index(True)
+            find_idx = lambda prop: [
+                True if x["property"] == prop else False
+                for x in format_content["gallery_properties"]
+            ].index(True)
 
             if "gallery_properties" not in format_content:
                 format_content["gallery_properties"] = []
 
             if on_first_load_show is not None:
-                format_content["inline_collection_first_load_limit"] = {"type": "load_limit",
-                                                                        "limit": on_first_load_show}
+                format_content["inline_collection_first_load_limit"] = {
+                    "type": "load_limit",
+                    "limit": on_first_load_show,
+                }
 
             for property in self.collection.get_schema_properties():
                 property_id = property["id"]
                 try:
                     idx = find_idx(property_id)
                 except:
-                    format_content["gallery_properties"].append({"property": property_id, "visible": True})
-                    idx = len(format_content["gallery_properties"])-1
+                    format_content["gallery_properties"].append(
+                        {"property": property_id, "visible": True}
+                    )
+                    idx = len(format_content["gallery_properties"]) - 1
 
                 if property["slug"] in properties_visibility:
-                    format_content["gallery_properties"][idx]["visible"] = properties_visibility[property["slug"]]
+                    format_content["gallery_properties"][idx][
+                        "visible"
+                    ] = properties_visibility[property["slug"]]
 
             if gallery_cover is not None:
                 is_property = self.collection.get_schema_property(gallery_cover)
                 if is_property is not None:
-                    format_content["gallery_cover"] = {"type": "property", "property": is_property["id"]}
+                    format_content["gallery_cover"] = {
+                        "type": "property",
+                        "property": is_property["id"],
+                    }
                 else:
                     format_content["gallery_cover"] = {"type": gallery_cover}
 
-            format_content["gallery_cover_size"] = gallery_cover_size if gallery_cover_size is not None else format_content["gallery_cover_size"]
-            format_content["gallery_cover_aspect"] = gallery_cover_aspect if gallery_cover_aspect is not None else format_content["gallery_cover_aspect"]
+            format_content["gallery_cover_size"] = (
+                gallery_cover_size
+                if gallery_cover_size is not None
+                else format_content["gallery_cover_size"]
+            )
+            format_content["gallery_cover_aspect"] = (
+                gallery_cover_aspect
+                if gallery_cover_aspect is not None
+                else format_content["gallery_cover_aspect"]
+            )
 
 
 class TimelineView(CollectionView):
@@ -743,35 +881,54 @@ class TimelineView(CollectionView):
     def update_timeline_by(self, date_property_start, date_property_end=None):
 
         with self._update_query2() as query2_content:
-            query2_content["timeline_by"] = self.collection.get_schema_property(date_property_start)["id"]
+            query2_content["timeline_by"] = self.collection.get_schema_property(
+                date_property_start
+            )["id"]
 
             if date_property_end is not None:
-                query2_content["timeline_by_end"] = self.collection.get_schema_property(date_property_end)["id"]
+                query2_content["timeline_by_end"] = self.collection.get_schema_property(
+                    date_property_end
+                )["id"]
 
-
-    def format_properties(self, timeline_properties_visibility, timeline_table_properties_visibility,
-                          timeline_table_properties_width, timeline_preference=None,
-                          timeline_show_table=None, on_first_load_show=None):
+    def format_properties(
+        self,
+        timeline_properties_visibility,
+        timeline_table_properties_visibility,
+        timeline_table_properties_width,
+        timeline_preference=None,
+        timeline_show_table=None,
+        on_first_load_show=None,
+    ):
         """
-               Format TimelineView properties.
-               timeline_properties_visibility: dict - {"property": visible }
-               timeline_table_properties_visibility: dict - {"property" : visible}
-                timeline_table_properties_width: {"property" : width}
-               timeline_preference: list - [zoomLevel, centerTimestamp:NotionDate]
-               timeline_show_table: bool
-               on_first_load_show: int - # of records to load on first show
+        Format TimelineView properties.
+        timeline_properties_visibility: dict - {"property": visible }
+        timeline_table_properties_visibility: dict - {"property" : visible}
+         timeline_table_properties_width: {"property" : width}
+        timeline_preference: list - [zoomLevel, centerTimestamp:NotionDate]
+        timeline_show_table: bool
+        on_first_load_show: int - # of records to load on first show
         """
 
-        timeline_table_properties_visibility = {slugify(key):v for key, v in timeline_table_properties_visibility.items()}
-        timeline_properties_visibility = {slugify(key): v for key, v in timeline_properties_visibility.items()}
-        timeline_table_properties_width = {slugify(key): v for key, v in timeline_table_properties_width.items()}
+        timeline_table_properties_visibility = {
+            slugify(key): v for key, v in timeline_table_properties_visibility.items()
+        }
+        timeline_properties_visibility = {
+            slugify(key): v for key, v in timeline_properties_visibility.items()
+        }
+        timeline_table_properties_width = {
+            slugify(key): v for key, v in timeline_table_properties_width.items()
+        }
 
         with self._update_format() as format_content:
-            find_idx = lambda prop: [True if x["property"] == prop else False for x in
-                                     format_content["timeline_properties"]].index(True)
+            find_idx = lambda prop: [
+                True if x["property"] == prop else False
+                for x in format_content["timeline_properties"]
+            ].index(True)
 
-            find_idx_table = lambda prop: [True if x["property"] == prop else False for x in
-                                     format_content["timeline_table_properties"]].index(True)
+            find_idx_table = lambda prop: [
+                True if x["property"] == prop else False
+                for x in format_content["timeline_table_properties"]
+            ].index(True)
 
             if "timeline_properties" not in format_content:
                 format_content["timeline_properties"] = []
@@ -780,39 +937,51 @@ class TimelineView(CollectionView):
                 format_content["timeline_table_properties"] = []
 
             if on_first_load_show is not None:
-                format_content["inline_collection_first_load_limit"] = {"type": "load_limit",
-                                                                        "limit": on_first_load_show}
+                format_content["inline_collection_first_load_limit"] = {
+                    "type": "load_limit",
+                    "limit": on_first_load_show,
+                }
             if timeline_show_table is not None:
                 format_content["timeline_show_table"] = timeline_show_table
 
             if timeline_preference is not None:
-                format_content["timeline_preference"] = {"zoomLevel":timeline_preference[0], "centerTimestamp":timeline_preference[1].timestamp()}
+                format_content["timeline_preference"] = {
+                    "zoomLevel": timeline_preference[0],
+                    "centerTimestamp": timeline_preference[1].timestamp(),
+                }
 
             for property in self.collection.get_schema_properties():
                 property_id = property["id"]
                 try:
                     idx = find_idx(property_id)
                 except:
-                    format_content["timeline_properties"].append({"property": property_id, "visible": True})
-                    idx = len(format_content["timeline_properties"])-1
+                    format_content["timeline_properties"].append(
+                        {"property": property_id, "visible": True}
+                    )
+                    idx = len(format_content["timeline_properties"]) - 1
 
                 if property["slug"] in timeline_properties_visibility:
-                    format_content["timeline_properties"][idx]["visible"] = timeline_properties_visibility[property["slug"]]
+                    format_content["timeline_properties"][idx][
+                        "visible"
+                    ] = timeline_properties_visibility[property["slug"]]
 
                 try:
                     idx = find_idx_table(property_id)
                 except:
-                    format_content["timeline_table_properties"].append({"property": property_id, "visible": True, "width":200})
-                    idx = len(format_content["timeline_table_properties"])-1
+                    format_content["timeline_table_properties"].append(
+                        {"property": property_id, "visible": True, "width": 200}
+                    )
+                    idx = len(format_content["timeline_table_properties"]) - 1
 
                 if property["slug"] in timeline_table_properties_visibility:
-                    format_content["timeline_table_properties"][idx]["visible"] = timeline_table_properties_visibility[property["slug"]]
+                    format_content["timeline_table_properties"][idx][
+                        "visible"
+                    ] = timeline_table_properties_visibility[property["slug"]]
 
                 if property["slug"] in timeline_table_properties_width:
-                    format_content["timeline_table_properties"][idx]["width"] = timeline_table_properties_width[property["slug"]]
-
-
-
+                    format_content["timeline_table_properties"][idx][
+                        "width"
+                    ] = timeline_table_properties_width[property["slug"]]
 
 
 def _normalize_property_name(prop_name, collection):
@@ -858,7 +1027,7 @@ class CollectionQuery(object):
         sort=[],
         calendar_by="",
         group_by="",
-        limit=100
+        limit=100,
     ):
         assert not (
             aggregate and aggregations
@@ -881,42 +1050,41 @@ class CollectionQuery(object):
         result_class = QUERY_RESULT_TYPES.get(self.type, QueryResult)
 
         kwargs = {
-            'collection_id':self.collection.id,
-            'collection_view_id':self.collection_view.id,
-            'search':self.search,
-            'type':self.type,
-            'aggregate':[],
-            'aggregations':self.aggregations,
-            'filter':self.filter,
-            'sort':self.sort,
-            'calendar_by':self.calendar_by,
-            'group_by':self.group_by,
-            'limit':0
+            "collection_id": self.collection.id,
+            "collection_view_id": self.collection_view.id,
+            "search": self.search,
+            "type": self.type,
+            "aggregate": [],
+            "aggregations": self.aggregations,
+            "filter": self.filter,
+            "sort": self.sort,
+            "calendar_by": self.calendar_by,
+            "group_by": self.group_by,
+            "limit": 0,
         }
 
         if self.aggregate is not None:
             for entry in self.aggregate:
-                key = "table:uncategorized:"+ entry["property"] +":"+ entry["aggregator"]
-                kwargs["aggregate"].append({
-                    "aggregation" : entry,
-                    "type" : "aggregation",
-                    "key" : key
-                })
+                key = (
+                    "table:uncategorized:"
+                    + entry["property"]
+                    + ":"
+                    + entry["aggregator"]
+                )
+                kwargs["aggregate"].append(
+                    {"aggregation": entry, "type": "aggregation", "key": key}
+                )
 
         if self.limit == -1:
-            # fetch remote total 
-            result = self._client.query_collection(
-                **kwargs
-            )
-            self.limit = result['reducerResults']['collection_group_results']['total']
+            # fetch remote total
+            result = self._client.query_collection(**kwargs)
+            self.limit = result["reducerResults"]["collection_group_results"]["total"]
 
-        kwargs['limit'] = self.limit
+        kwargs["limit"] = self.limit
 
         return result_class(
             self.collection,
-            self._client.query_collection(
-                **kwargs
-            ),
+            self._client.query_collection(**kwargs),
             self,
         )
 
@@ -1088,10 +1256,8 @@ class CollectionRowBlock(PageBlock):
 
         if reminder and prop["type"] == "date":
             self.get_property(identifier).reminder = dict(
-                **reminder,
-                time=reminder.get("time", None)
-            }
-
+                **reminder, time=reminder.get("time", None)
+            )
 
         path, val = self._convert_python_to_notion(val, prop, identifier=identifier)
 
@@ -1236,7 +1402,7 @@ class QueryResult(object):
         self._block_ids = self._get_block_ids(result)
         self.total = result.get("total", -1)
         self.aggregates = result.get("reducerResults", [])
-        del self.aggregates['collection_group_results']
+        del self.aggregates["collection_group_results"]
         self.aggregate_ids = [
             agg.get("id") for agg in (query.aggregate or query.aggregations)
         ]
@@ -1294,6 +1460,7 @@ class QueryResult(object):
         else:
             return False
         return item_id in self._block_ids
+
 
 class TableQueryResult(QueryResult):
 

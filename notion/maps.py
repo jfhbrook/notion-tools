@@ -19,7 +19,7 @@ class mapper(property):
 def field_map(path, python_to_api=lambda x: x, api_to_python=lambda x: x):
     """
     Returns a property that maps a Block attribute onto a field in the API data structures.
-    
+
     - `path` can either be a top-level field-name, a list that specifies the key names to traverse,
       or a dot-delimited string representing the same traversal.
 

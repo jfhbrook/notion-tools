@@ -1,27 +1,27 @@
+from getpass import getpass
 import hashlib
 import json
 import re
+from urllib.parse import urljoin
 import uuid
 
-from requests import Session, HTTPError
-from requests.cookies import cookiejar_from_dict
-from urllib.parse import urljoin
-from requests.adapters import HTTPAdapter
-from requests.packages.urllib3.util.retry import Retry
-from getpass import getpass
 from ratelimit import limits, sleep_and_retry
+from requests import HTTPError, Session
+from requests.adapters import HTTPAdapter
+from requests.cookies import cookiejar_from_dict
+from requests.packages.urllib3.util.retry import Retry
 
 from .block import Block, BLOCK_TYPES
 from .collection import (
     Collection,
-    CollectionView,
-    CollectionRowBlock,
     COLLECTION_VIEW_TYPES,
+    CollectionRowBlock,
+    CollectionView,
     TemplateBlock,
 )
 from .logger import logger
 from .monitor import Monitor
-from .operations import operation_update_last_edited, build_operation
+from .operations import build_operation, operation_update_last_edited
 from .settings import API_BASE_URL
 from .space import Space
 from .store import RecordStore
@@ -97,7 +97,7 @@ class NotionClient(object):
 
     def start_monitoring(self):
         self._monitor.poll_async()
-    
+
     def _fetch_guest_space_data(self, records):
         """
         guest users have an empty `space` dict, so get the space_id from the `space_view` dict instead,
@@ -114,7 +114,6 @@ class NotionClient(object):
         records["space"] = {
             space["id"]: {"value": space} for space in space_data["results"]
         }
-
 
     def _set_token(self, email=None, password=None):
         if not email:
@@ -167,7 +166,9 @@ class NotionClient(object):
         Retrieve an instance of a subclass of Block that maps to the block/page identified by the URL or ID passed in.
         """
         block_id = extract_id(url_or_id)
-        block = self.get_record_data("block", block_id, force_refresh=force_refresh, limit=limit)
+        block = self.get_record_data(
+            "block", block_id, force_refresh=force_refresh, limit=limit
+        )
         if not block:
             return None
         if block.get("parent_table") == "collection":
@@ -248,7 +249,6 @@ class NotionClient(object):
 
     @sleep_and_retry
     @limits(calls=1, period=1)
-
     def post(self, endpoint, data):
         """
         All API requests on Notion.so are done as POSTs (except the websocket communications).
@@ -269,7 +269,9 @@ class NotionClient(object):
         response.raise_for_status()
         return response
 
-    def submit_transaction(self, operations, generate_update_last_edited=True, updated_blocks=None):
+    def submit_transaction(
+        self, operations, generate_update_last_edited=True, updated_blocks=None
+    ):
 
         if not operations:
             return
@@ -278,7 +280,9 @@ class NotionClient(object):
             operations = [operations]
 
         if generate_update_last_edited:
-            generated_updated_blocks = [op["id"] for op in operations if op["table"] == "block"]
+            generated_updated_blocks = [
+                op["id"] for op in operations if op["table"] == "block"
+            ]
             if updated_blocks is not None and type(updated_blocks) is list:
                 generated_updated_blocks.extend(updated_blocks)
 

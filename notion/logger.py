@@ -3,7 +3,6 @@ import os
 
 from .settings import LOG_FILE
 
-
 NOTIONPY_LOG_LEVEL = os.environ.get("NOTIONPY_LOG_LEVEL", "warning").lower()
 
 logger = logging.getLogger("notion")

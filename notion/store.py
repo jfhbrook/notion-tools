@@ -1,14 +1,14 @@
-import datetime
-import json
-import threading
-import uuid
-
 from collections import defaultdict
 from copy import deepcopy
-from dictdiffer import diff
+import datetime
 from inspect import signature
-from threading import Lock
+import json
 from pathlib import Path
+import threading
+from threading import Lock
+import uuid
+
+from dictdiffer import diff
 from tzlocal import get_localzone
 
 from .logger import logger
@@ -181,7 +181,7 @@ class RecordStore(object):
         # if it's not found, try refreshing the record from the server
         if result is Missing or force_refresh:
             if table == "block":
-                self.call_load_page_chunk(id,limit=limit)
+                self.call_load_page_chunk(id, limit=limit)
             else:
                 self.call_get_record_values(**{table: id})
             result = self._get(table, id)
@@ -279,9 +279,7 @@ class RecordStore(object):
         chunk_number = 0
         while True:
             data = {
-                "page": {
-                    "id": page_id
-                },
+                "page": {"id": page_id},
                 "limit": limit,
                 "cursor": {"stack": []},
                 "chunkNumber": 0,
@@ -293,8 +291,8 @@ class RecordStore(object):
             recordmap = result["recordMap"]
 
             self.store_recordmap(recordmap)
-            cursor = result['cursor']
-            if len(cursor['stack']) <= 0:
+            cursor = result["cursor"]
+            if len(cursor["stack"]) <= 0:
                 break
 
     def store_recordmap(self, recordmap):
@@ -320,7 +318,7 @@ class RecordStore(object):
         sort=[],
         calendar_by="",
         group_by="",
-        limit=50
+        limit=50,
     ):
 
         assert not (
@@ -336,34 +334,34 @@ class RecordStore(object):
         data = {
             "collection": {
                 "id": collection_id,
-                "spaceId": self._client.current_space.id
+                "spaceId": self._client.current_space.id,
             },
             "collectionView": {
                 "id": collection_view_id,
-                "spaceId": self._client.current_space.id
+                "spaceId": self._client.current_space.id,
             },
             "loader": {
                 "type": "reducer",
                 "searchQuery": search,
                 "reducers": {
-                    "collection_group_results":{
+                    "collection_group_results": {
                         "limit": limit,
                         "type": type,
                     }
                 },
-                'filter': filter,
-                'sort': sort,
+                "filter": filter,
+                "sort": sort,
                 "userTimeZone": str(get_localzone()),
-                "loadContentCover": True
+                "loadContentCover": True,
             },
         }
 
         if aggregate is not None:
             for entry in aggregate:
                 data["loader"]["reducers"][entry["key"]] = entry
-                
+
         response = self._client.post("queryCollection", data).json()
-        
+
         self.store_recordmap(response["recordMap"])
 
         return response["result"]

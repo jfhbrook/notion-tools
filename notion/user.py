@@ -1,5 +1,5 @@
 from .logger import logger
-from .maps import property_map, field_map
+from .maps import field_map, property_map
 from .records import Record
 
 
