@@ -1,4 +1,6 @@
-# notion-py
+# notion-tools
+
+
 
 Unofficial Python 3 client for Notion.so API v3.
 

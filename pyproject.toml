@@ -1,0 +1,38 @@
+[project]
+name = "notion-tools"
+version = "0.0.1"
+description = "Python toolkit for notion.so"
+authors = [
+  "Josh Holbrook @jfhbrook <josh.holbrook@gmail.com>"
+]
+license = "MIT"
+readme = "README.md"
+
+dependencies = [
+  "beautifulsoup4",
+  "cached-property",
+  "click",
+  "commonmark",
+  "dictdiffer",
+  "Pygments",
+  "python-slugify",
+  "ratelimit",
+  "requests",
+  "toml",
+  "tzlocal"
+]
+
+[tool.black]
+line-length = 88
+
+[tool.isort]
+profile = "appnexus"
+known_first_party = []
+known_application = [ "notion" ]
+
+[tool.flake8]
+max-line-length = 88
+extend-ignore = "E203"
+
+[tool.pyright]
+include = ["notion"]
