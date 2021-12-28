@@ -178,7 +178,7 @@ class Collection(Record):
         Check and update the prop dict with new values
         """
         schema_update = False
-        current_options = list([p["value"].lower() for p in prop["options"]])
+        current_options = [p["value"].lower() for p in prop.get("options", [])]
         if not isinstance(values, list):
             values = [values]
         for v in values:
