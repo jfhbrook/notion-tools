@@ -48,9 +48,9 @@ def init(ctx):
         default=ctx.obj.settings.page or "https://notion.so/<page>",
     )
 
-    ctx.obj.set_settings(token=token, page=page)
+    ctx.obj.update_settings(token=token, page=page)
 
-    click.echo(f"Settings written to {settings.settings_file}")
+    click.echo(f"Settings written to {ctx.obj.settings.settings_file}")
 
 
 @settings.command(help="Show the current settings")
@@ -64,7 +64,7 @@ def show(ctx):
 @click.argument("value")
 @click.pass_context
 def set(ctx, key, value):
-    ctx.obj.set_settings(**{key: value})
+    ctx.obj.update_settings(**{key: value})
     pprint_md(ctx.obj.settings)
 
 
