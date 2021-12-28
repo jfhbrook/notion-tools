@@ -60,7 +60,7 @@ Options:
   --help  Show this message and exit.
 
 Commands:
-  settings       Show or set the current settings
+  settings     Show or set the current settings
   smoke-tests  Run the smoke tests against a Notion URL
 ```
 
