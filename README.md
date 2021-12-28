@@ -83,7 +83,7 @@ page.title = "The title has now changed, and has *live-updated* in the browser!"
 
 ## Settings
 
-The application code stores its settings in `~/.local/config/notion/settings.toml`.
+The application code stores its settings in `~/.config/notion/settings.toml`.
 To create fresh settings, run `notion settings init`.
 
 It will prompt you for two configuration parameters:

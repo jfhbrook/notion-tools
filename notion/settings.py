@@ -14,7 +14,7 @@ S3_URL_PREFIX = "https://s3-us-west-2.amazonaws.com/secure.notion-static.com/"
 S3_URL_PREFIX_ENCODED = "https://s3.us-west-2.amazonaws.com/secure.notion-static.com/"
 
 CONFIG_DIR = os.environ.get(
-    "NOTION_CONFIG_DIR", str(Path(os.path.expanduser("~")) / ".local" / "config" / "notion")
+    "NOTION_CONFIG_DIR", str(Path(os.path.expanduser("~")) / ".config" / "notion")
 )
 DATA_DIR = os.environ.get(
     "NOTION_DATA_DIR", str(Path(os.path.expanduser("~")) / ".local" / "share" / "notion")
