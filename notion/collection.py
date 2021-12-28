@@ -213,16 +213,16 @@ class Collection(Record):
             # Start a duplication task
             data = self._client.post(
                 "enqueueTask",
-                {
-                    "task": {
-                        "eventName": "duplicateBlock",
-                        "request": {
-                            "sourceBlockId": source_block.id,
-                            "targetBlockId": row_id,
-                            "appendContentOnly": True
-                        }
-                    }
-                },
+                dict(
+                    task=dict(
+                        eventName="duplicateBlock",
+                        request=dict(
+                            sourceBlockId=source_block.id,
+                            targetBlockId=row_id,
+                            appendContentOnly=True
+                        )
+                    )
+                ),
             ).json()
 
             task_id = data.get("taskId")

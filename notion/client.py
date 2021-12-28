@@ -408,26 +408,14 @@ class NotionClient(object):
         """
         Get a status of a single task
         """
-        data = self.post(
-            "getTasks",
-            {
-                "taskIds": [task_id]
-            }
-        ).json()
+        data = self.post("getTasks", dict(taskIds=[task_id])).json()
 
         results = data.get("results")
-        if results is None:
-            return None
-        
-        if not results:
-            # Notion does not know about such a task
-            print("Invalid task ID.")
-            return None
 
-        if len(results) == 1:
-            state = results[0].get("state")
-            return state
-        
+        if results is not None and len(results) >= 1:
+            return results[0].get("state")
+
+        logger.error(f"There is no such task: {results}")
         return None
         
     def wait_for_task(self, task_id, interval=1, tries=10):
@@ -442,7 +430,7 @@ class NotionClient(object):
             elif state == "success":
                 return state
         
-        print("Task takes more time than expected. Specify 'interval' or 'tries' to wait more.")
+        logger.debug("Task takes more time than expected. Specify 'interval' or 'tries' to wait more.")
 
 class Transaction(object):
 
