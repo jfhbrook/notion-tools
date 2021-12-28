@@ -326,10 +326,14 @@ def run_live_smoke_test(token_v2, parent_page_url_or_id):
 
     # Run an "aggregation" query
     aggregations = [
-        {"property": "estimated_value", "aggregator": "sum", "id": "total_value"}
+        {
+            "property": "estimated_value", 
+            "aggregator": "sum", 
+            "id": "total_value"
+        }
     ]
-    result = view.build_query(aggregations=aggregations).execute()
-    assert result.get_aggregate("total_value") == 64
+    result = view.build_query(aggregate=aggregations).execute()
+    assert result.get_aggregates()[0]["value"] == 64
 
     # Run a "filtered" query
     filter_params = {

@@ -282,7 +282,7 @@ class RecordStore(object):
                 "page": {
                     "id": page_id
                 },
-                "limit": 100,
+                "limit": limit,
                 "cursor": {"stack": []},
                 "chunkNumber": 0,
                 "verticalColumns": False,
@@ -313,7 +313,7 @@ class RecordStore(object):
         collection_id,
         collection_view_id,
         search="",
-        type="table",
+        type="results",
         aggregate=[],
         aggregations=[],
         filter={},
@@ -343,22 +343,27 @@ class RecordStore(object):
                 "spaceId": self._client.current_space.id
             },
             "loader": {
-                'filter': filter,
-                'reducers': {
-                    'collection_group_results': {
-                        'limit': limit,
-                        'type': 'results',
-                    },
-                },
+                "type": "reducer",
                 "searchQuery": search,
+                "reducers": {
+                    "collection_group_results":{
+                        "limit": limit,
+                        "type": type,
+                    }
+                },
+                'filter': filter,
                 'sort': sort,
                 "userTimeZone": str(get_localzone()),
-                "type": 'reducer',
+                "loadContentCover": True
             },
         }
 
+        if aggregate is not None:
+            for entry in aggregate:
+                data["loader"]["reducers"][entry["key"]] = entry
+                
         response = self._client.post("queryCollection", data).json()
-
+        
         self.store_recordmap(response["recordMap"])
 
         return response["result"]
