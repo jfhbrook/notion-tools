@@ -5,6 +5,7 @@ from copy import deepcopy
 from datetime import datetime, date
 from tzlocal import get_localzone
 from uuid import uuid1
+from typing import Any, Dict, Optional
 
 from .block import Block, PageBlock, Children, CollectionViewBlock
 from .logger import logger
@@ -20,6 +21,9 @@ from .utils import (
 )
 
 
+Reminder = Dict[str, Any]
+
+
 class NotionDate(object):
 
     start = None
@@ -27,7 +31,7 @@ class NotionDate(object):
     timezone = None
     reminder = None
 
-    def __init__(self, start, end=None, timezone=None, reminder=None):
+    def __init__(self, start, end=None, timezone=None, reminder: Optional[Reminder] = None):
         self.start = start
         self.end = end
         self.timezone = timezone
@@ -1038,7 +1042,7 @@ class CollectionRowBlock(PageBlock):
             allprops[propid] = self.get_property(propid)
         return allprops
 
-    def set_property(self, identifier, val):
+    def set_property(self, identifier, val, reminder: Optional[Reminder] = None):
 
         prop = self.collection.get_schema_property(identifier)
         if prop is None:
@@ -1051,6 +1055,13 @@ class CollectionRowBlock(PageBlock):
                 self.collection.set(
                     "schema.{}.options".format(prop["id"]), prop["options"]
                 )
+
+        if reminder and prop["type"] == "date":
+            self.get_property(identifier).reminder = dict(
+                **reminder,
+                time=reminder.get("time", None)
+            }
+
 
         path, val = self._convert_python_to_notion(val, prop, identifier=identifier)
 
