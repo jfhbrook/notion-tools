@@ -1,8 +1,33 @@
 # notion-tools
 
+`notion-tools` is a Python project for interacting with the Notion.so API. It's
+based on <https://github.com/jamalex/notion-py>, with most of the open PR
+branches pulled in. It's also heavily inspired by
+<https://github.com/kris-hansen/notion-cli>, though it shares no meaningful
+code with it.
 
+My goals are a little different than those of either `notion-py`. Rather than
+offering a comprehensive client interface, I want practical tools, command line
+and otherwise, that I can use for interacting with Notion outside of the web
+UI. Other use cases, such as rendering pages, are strictly secondary. Some
+features - such as automatic synchronization and mutable properties - aren't my
+cup of tea and may get removed or replaced with immutable APIs.
 
-Unofficial Python 3 client for Notion.so API v3.
+My goals also differ from `notion-cli` - this tool attempted to manage to-do
+list items in Notion pages, but it's quickly become apparent to me that the
+editing model for Notion is too complex to naively implement a one-size-fits-all
+solution for everything. While there will definitely be CLI goodies, they
+probably won't be very simple.
+
+Ultimately I plan on cracking this code open during my lunch breaks, goofing
+off in Jupyter, fixing dumb stuff as I find it and - if all goes well - end
+up with a few cells that I can convert into cli commands. I may even explore
+configuration through Jupyter, a la Great Expectations, but let's not get ahead
+of ourselves.
+
+---
+
+Anyway, some selling points for the OG `notion-py`:
 
 - Object-oriented interface (mapping database tables to Python classes/attributes)
 - Automatic conversion between internal Notion formats and appropriate Python objects
@@ -10,32 +35,79 @@ Unofficial Python 3 client for Notion.so API v3.
 - Real-time reactive two-way data binding (changing Python object -> live updating of Notion UI, and vice-versa) *(Note: Notion->Python automatic updating is currently broken and hence disabled by default; call `my_block.refresh()` to update, in the meantime, while monitoring is being fixed)*
 - Callback system for responding to changes in Notion (e.g. for triggering actions, updating another API, etc)
 
-![](https://raw.githubusercontent.com/jamalex/notion-py/master/ezgif-3-a935fdcb7415.gif)
+[Here's a blog post by the original author of notion-py](https://medium.com/@jamiealexandre/introducing-notion-py-an-unofficial-python-api-wrapper-for-notion-so-603700f92369)
+that may be enlightening as well.
 
-[Read more about Notion and Notion-py on Jamie's blog](https://medium.com/@jamiealexandre/introducing-notion-py-an-unofficial-python-api-wrapper-for-notion-so-603700f92369)
+# Getting Started
 
-# Usage
+You should be able to install this using pip and git URLs. I don't have this
+published on PyPI and it's unlikely to happen before I feel like I have a
+coherent, generally useful tool.
 
-## Quickstart
+If you want to hack on this project for real, scroll down to Developer Setup.
 
-Note: the latest version of **notion-py** requires Python 3.5 or greater.
+## Quick Start
 
-`pip install notion`
+Installing `notion-tools` will expose a CLI:
+
+```
+$ notion --help
+Usage: notion [OPTIONS] COMMAND [ARGS]...
+
+  A Notion.so CLI focused on simple task management
+
+Options:
+  --help  Show this message and exit.
+
+Commands:
+  config       Show or set the current configuration
+  smoke-tests  Run the smoke tests against a Notion URL
+```
+
+You can also import the client directly in Python:
 
 ```Python
+from notion.config import Config
 from notion.client import NotionClient
 
-# Obtain the `token_v2` value by inspecting your browser cookies on a logged-in (non-guest) session on Notion.so
-client = NotionClient(token_v2="<token_v2>")
+config = Config.from_file()
 
-# Replace this URL with the URL of the page you want to edit
+client = NotionClient(token_v2=config.token)
+
 page = client.get_block("https://www.notion.so/myorg/Test-c0d20a71c0944985ae96e661ccc99821")
 
-print("The old title is:", page.title)
+print(f"Page title: {page.title}")
 
-# Note: You can use Markdown! We convert on-the-fly to Notion's internal formatted text data structure.
 page.title = "The title has now changed, and has *live-updated* in the browser!"
 ```
+
+## Configuration
+
+The application code stores its configuration in `~/.local/notion/config.toml`.
+To create a fresh config, run `notion config init`.
+
+It will prompt you for two configuration parameters:
+
+- `token` - This is the API token for the Notion client
+- `page` - This is the URL for the page (ex: https://notion.so/my-page)
+
+To get the `token`, you'll need to:
+
+- Log into notion in your web browser
+- Crack open the dev console
+- Dig through your browser cookies
+- Copy-paste it on out
+
+## Developer Setup
+
+I'm using <https://github.com/casey/just> for task execution. You can install
+it through `cargo install just`, or through your system package manager of
+choice.
+
+Anyway: to set up the virtualenv, run `just setup`.
+
+To source the virtualenv after it's built, run `source ./venv/bin/activate` in
+bash.
 
 ## Concepts and notes
 
@@ -45,11 +117,13 @@ page.title = "The title has now changed, and has *live-updated* in the browser!"
 - The API doesn't have strong validation of most data, so be careful to maintain the structures Notion is expecting. You can view the full internal structure of a record by calling `myrecord.get()` with no arguments.
 - When you call `client.get_block`, you can pass in either an ID, or the URL of a page. Note that pages themselves are just `blocks`, as are all the chunks of content on the page. You can get the URL for a block within a page by clicking "Copy Link" in the context menu for the block, and pass that URL into `get_block` as well.
 
-## Updating records
+## Updating Records
 
 We keep a local cache of all data that passes through. When you reference an attribute on a `Record`, we first look to that cache to retrieve the value. If it doesn't find it, it retrieves it from the server. You can also manually refresh the data for a `Record` by calling the `refresh` method on it. By default (unless we instantiate `NotionClient` with `monitor=False`), we also [subscribe to long-polling updates](https://github.com/jamalex/notion-py/blob/master/notion/monitor.py) for any instantiated `Record`, so the local cache data for these `Records` should be automatically live-updated shortly after any data changes on the server. The long-polling happens in a background daemon thread.
 
-## Example: Traversing the block tree
+## Examples
+
+### Traversing the block tree
 
 ```Python
 for child in page.children:
@@ -58,7 +132,7 @@ for child in page.children:
 print("Parent of {} is {}".format(page.id, page.parent.id))
 ```
 
-## Example: Adding a new node
+### Adding a new node
 
 ```Python
 from notion.block import TodoBlock
@@ -67,7 +141,7 @@ newchild = page.children.add_new(TodoBlock, title="Something to get done")
 newchild.checked = True
 ```
 
-## Example: Deleting nodes
+### Deleting nodes
 
 ```Python
 # soft-delete
@@ -77,7 +151,7 @@ page.remove()
 page.remove(permanently=True)
 ```
 
-## Example: Create an embedded content type (iframe, video, etc)
+### Create an embedded content type (iframe, video, etc)
 
 ```Python
 from notion.block import VideoBlock
@@ -87,7 +161,7 @@ video = page.children.add_new(VideoBlock, width=200)
 video.set_source_url("https://www.youtube.com/watch?v=oHg5SJYRHA0")
 ```
 
-## Example: Create a new embedded collection view block
+### Create a new embedded collection view block
 
 ```Python
 collection = client.get_collection(COLLECTION_ID) # get an existing collection
@@ -103,7 +177,7 @@ view = cvb.views.add_new(view_type="table")
 #   view.set("format.board_properties", ...)
 ```
 
-## Example: Moving blocks around
+### Moving blocks around
 
 ```Python
 # move my block to after the video
@@ -115,7 +189,7 @@ my_block.move_to(otherblock, "last-child")
 # (you can also use "before" and "first-child")
 ```
 
-## Example: Subscribing to updates
+### Subscribing to updates
 
 *(Note: Notion->Python automatic updating is currently broken and hence disabled by default; call `my_block.refresh()` to update, in the meantime, while monitoring is being fixed)*
 
@@ -133,7 +207,7 @@ def my_callback(record, difference):
 my_block.add_callback(my_callback)
 ```
 
-## Example: Working with databases, aka "collections" (tables, boards, etc)
+### Working with databases, aka "collections" (tables, boards, etc)
 
 Here's how things fit together:
 - Main container block: `CollectionViewBlock` (inline) / `CollectionViewPageBlock` (full-page)
@@ -211,7 +285,7 @@ You can also see [more examples in action in the smoke test runner](https://gith
 python run_smoke_test.py --page [YOUR_NOTION_PAGE_URL] --token [YOUR_NOTION_TOKEN_V2]
 ```
 
-## Example: Lock/Unlock A Page
+### Lock/Unlock A Page
 ```Python
 from notion.client import NotionClient
 
@@ -228,7 +302,7 @@ page.locked = True
 page.locked = False
 ```
 
-## Example: Set the current user for multi-account user
+### Set the current user for multi-account user
 
 ```python
 from notion.client import NotionClient
@@ -252,6 +326,9 @@ If you'd like to support notion-py development, please consider [donating to my 
 
 # Related Projects
 
+
+- [notion-py](https://github.com/jamalex/notion-py): the basis for this project
+- [notion-cli](https://github.com/kris-hansen/notion-cli): the *inspiration* for this project
 - [md2notion](https://github.com/Cobertos/md2notion): import Markdown files to Notion
 - [notion-export-ics](https://github.com/evertheylen/notion-export-ics): Export Notion Databases to ICS calendar files
 - [notion-tqdm](https://github.com/shunyooo/notion-tqdm): Progress Bar displayed in Notion like tqdm
