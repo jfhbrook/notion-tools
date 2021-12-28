@@ -279,8 +279,10 @@ class RecordStore(object):
         chunk_number = 0
         while True:
             data = {
-                "pageId": page_id,
-                "limit": limit,
+                "page": {
+                    "id": page_id
+                },
+                "limit": 100,
                 "cursor": {"stack": []},
                 "chunkNumber": 0,
                 "verticalColumns": False,
