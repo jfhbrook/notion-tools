@@ -6,7 +6,7 @@ branches pulled in. It's also heavily inspired by
 <https://github.com/kris-hansen/notion-cli>, though it shares no meaningful
 code with it.
 
-My goals are a little different than those of either `notion-py`. Rather than
+My goals are a little different than those of `notion-py`. Rather than
 offering a comprehensive client interface, I want practical tools, command line
 and otherwise, that I can use for interacting with Notion outside of the web
 UI. Other use cases, such as rendering pages, are strictly secondary. Some
