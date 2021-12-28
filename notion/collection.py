@@ -106,6 +106,20 @@ class NotionDate(object):
 
         return [["‣", [["d", data]]]]
 
+    def __repr__(self):
+        string = ""
+
+        start_date, start_time = self._format_datetime(self.start)
+        if start_date: string += start_date
+        if start_time: string += "T" + start_time
+
+        end_date, end_time = self._format_datetime(self.end)
+        if end_date: string += ";" + end_date
+        if end_time: string += "T" + end_time
+
+        # TODO if self.reminder:
+
+        return string
 
 class NotionSelect(object):
     valid_colors = [
@@ -323,6 +337,22 @@ class CollectionView(Record):
         assert self.get("parent_table", "block")
         return self._client.get_block(self.get("parent_id"))
 
+    @property
+    def columns(self):
+        columns = list()
+
+        for prop in self.get("format.table_properties"):
+            schema = self.collection.get_schema_property(prop["property"])
+            columns.append({
+                "name" : schema["name"],
+                "id" : schema["id"],
+                "width" : prop["width"],
+                "visible" : prop["visible"],
+                "type" : schema["type"]
+            })
+
+        return columns
+
     def __init__(self, *args, collection, **kwargs):
         self.collection = collection
         super().__init__(*args, **kwargs)
@@ -333,7 +363,7 @@ class CollectionView(Record):
         )
 
     def default_query(self):
-        return self.build_query(**self.get("query", {}))
+        return self.build_query(**self.get("query2", {}))
 
     def update_view_sort(self, sort_list):
         """
