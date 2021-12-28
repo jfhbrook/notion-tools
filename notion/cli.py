@@ -1,4 +1,5 @@
 from dataclasses import fields
+
 import click
 from pygments import highlight
 from pygments.formatters import Terminal256Formatter
@@ -65,6 +66,15 @@ def show(ctx):
 def set(ctx, key, value):
     ctx.obj.set_config(**{key: value})
     pprint_md(ctx.obj.config)
+
+
+@cli.command(help="Run the smoke tests against a Notion URL")
+@click.argument("url")
+@click.pass_context
+def smoke_tests(ctx, url):
+    from notion.smoke_test import run_live_smoke_test
+
+    run_live_smoke_test(ctx.config.token, url)
 
 
 if __name__ == "__main__":
