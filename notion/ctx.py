@@ -7,8 +7,7 @@ class Context:
         self.settings = Settings.from_file()
         self._client = None
 
-    @property
-    def client(self):
+    def get_client(self):
         if not self._client:
             self.settings.validate()
             self._client = NotionClient(token_v2=self.settings.token, monitor=False)

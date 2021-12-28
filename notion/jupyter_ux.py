@@ -1,5 +1,8 @@
 from notion.ctx import Context
 
 ctx = Context()
-config = ctx.config
-client = ctx.client
+settings = ctx.settings
+
+
+def get_client():
+    return ctx.get_client()
