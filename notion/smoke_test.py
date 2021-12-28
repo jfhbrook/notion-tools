@@ -142,6 +142,14 @@ def run_live_smoke_test(token_v2, parent_page_url_or_id):
             == get_collection_schema()[prop]["options"][0]["id"]
         )
 
+    # Check that inserting into empty props works
+    assert not row2.eselect
+    row2.eselect = "A"
+    assert cvb.collection.get(f"schema.{eselect}.options.0.value") == "A"
+    assert not row2.emselect
+    row2.emselect = ["A", "B"]
+    assert cvb.collection.get(f"schema.{emselect}.options.0.value") == "A"
+
     # Run a filtered/sorted query using the view's default parameters
     result = view.default_query().execute()
     assert row1 == result[0]
@@ -271,6 +279,14 @@ def get_collection_schema():
                     "value": "B",
                 },
             ],
+        },
+        "eselect": {
+            "name": "eselect",
+            "type": "select"
+        },
+        "emselect": {
+            "name": "emselect",
+            "type": "multi_select"
         },
         "LL[(": {"name": "Person", "type": "person"},
         "4Jv$": {"name": "Estimated value", "type": "number"},
