@@ -4,9 +4,11 @@ import random
 import requests
 import time
 import uuid
+import base64
 
 from cached_property import cached_property
 from copy import deepcopy
+from urllib.request import quote
 
 from .logger import logger
 from .maps import property_map, field_map, mapper
@@ -453,6 +455,10 @@ class ColumnBlock(Block):
 
     _type = "column"
 
+class TableOfContentsBlock(Block):
+
+    _type = "table_of_contents"
+
 
 class BasicBlock(Block):
 
@@ -477,6 +483,27 @@ class BasicBlock(Block):
 
     def _str_fields(self):
         return super()._str_fields() + ["title"]
+        
+    title_list = field_map(
+        ["properties", "title"],
+        python_to_api=lambda x: [[x]],
+        api_to_python=lambda x: x,
+    )
+
+    def _get_title(self):
+        text=""
+        for list in self.title_list:
+            if list[0] == "⁍":
+                    text+=list[1][0][1]
+            else:
+                text+=list[0]
+        return text
+    @property
+    def title(self):
+        try:
+            return self._get_title()
+        except:
+            pass
 
 
 class TodoBlock(BasicBlock):
@@ -539,6 +566,8 @@ class PageBlock(BasicBlock):
         api_to_python=add_signed_prefix_as_needed,
         python_to_api=remove_signed_prefix_as_needed,
     )
+    
+    cover_position = field_map("format.page_cover_position")
 
     locked = field_map("format.block_locked")
 
@@ -557,6 +586,59 @@ class PageBlock(BasicBlock):
                 backlinks.append(self._client.get_block(block_id))
         return backlinks
 
+    def set_full_width(self, full_width):
+        args = {"page_full_width": full_width}
+        self._client.submit_transaction(
+            [build_operation(
+                id=self.id, path=["format"], args=args, command="update"
+            )]
+        )
+        self.refresh()
+
+    def set_small_text(self, small_text):
+        args = {"page_small_text": small_text}
+        self._client.submit_transaction(
+            [build_operation(
+                id=self.id, path=["format"], args=args, command="update"
+            )]
+        )
+        self.refresh()
+
+    def set_page_font(self, page_font):
+        args = {"page_font": page_font}
+        self._client.submit_transaction(
+            [build_operation(
+                id=self.id, path=["format"], args=args, command="update"
+            )]
+        )
+        self.refresh()
+
+    def set_page_icon(self, icon):
+
+        self._client.submit_transaction(
+            [build_operation(
+                id=self.id, path=["format", "page_icon"], args=icon, command="set"
+            )])
+
+    def set_page_cover(self, args, page_cover_position=0.5):
+
+        postion_args = {"page_cover_position": page_cover_position}
+        self._client.submit_transaction(
+            [build_operation(
+                id=self.id, path=["format"], args=postion_args, command="update"
+            ),build_operation(
+                id=self.id, path=["format", "page_cover"], args=args, command="set"
+            )]
+        )
+
+    def set_page_cover_position(self, page_cover_position):
+
+        postion_args = {"page_cover_position": page_cover_position}
+        self._client.submit_transaction(
+            [build_operation(
+                id=self.id, path=["format"], args=postion_args, command="update"
+            )]
+        )
 
 class BulletedListBlock(BasicBlock):
 
@@ -652,6 +734,35 @@ class EmbedOrUploadBlock(EmbedBlock):
         self.display_source = data["url"]
         self.source = data["url"]
         self.file_id = data["url"][len(S3_URL_PREFIX) :].split("/")[0]
+
+    def download_file(self, path):
+
+        # "oneliner" helper to safely unwrap lists, see: https://bit.ly/35SUfMK
+        unwrap = lambda x: unwrap(next(iter(x), None)) \
+                if '__iter__' in dir(x) and not isinstance(x, str) else x
+
+        record_data = self._get_record_data()
+        sources = record_data.get("properties", {}).get("source", [])
+        s3_url = unwrap(sources)
+        filename = s3_url.split("/")[-1]
+
+        params = dict(
+            table="block",
+            id=self.id,
+            name=filename,
+            download="true",
+            userId=self._client.current_user.id,
+            cache="v2",
+        )
+
+        url = f"{BASE_URL}signed/" + quote(s3_url, safe="")
+
+        # piggyback off of client's session to proper token is included
+        resp = self._client.session.get(url, params=params, stream=True)
+
+        with open(path, "wb") as fp:
+            for chunk in resp.iter_content(chunk_size=1024):
+                fp.write(chunk)
 
 
 class VideoBlock(EmbedOrUploadBlock):
